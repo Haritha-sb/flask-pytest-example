@@ -1,6 +1,8 @@
-"""Render a pytest JUnit XML report as a GitHub Actions step summary table."""
+"""Render a pytest JUnit XML report as a markdown table."""
 import sys
 import xml.etree.ElementTree as ET
+
+MARKER = '<!-- ci-test-results -->'
 
 RESULTS = {
     'failure': ('Failed', ':x:'),
@@ -16,7 +18,7 @@ def classify(case):
     return 'Passed', ':white_check_mark:'
 
 
-def main(path):
+def render(path):
     root = ET.parse(path).getroot()
     suites = root.iter('testsuite') if root.tag == 'testsuites' else [root]
 
@@ -33,15 +35,19 @@ def main(path):
 
     total = len(rows)
     tally = ', '.join('%d %s' % (n, label.lower()) for label, n in sorted(counts.items()))
-    print('## Test results')
-    print()
-    print('**%d test%s** - %s' % (total, '' if total == 1 else 's', tally or 'no results'))
-    print()
-    print('| Result | Test | Location | Time |')
-    print('| --- | --- | --- | --- |')
-    for row in rows:
-        print(row)
+
+    lines = [
+        MARKER,
+        '## Test results',
+        '',
+        '**%d test%s** - %s' % (total, '' if total == 1 else 's', tally or 'no results'),
+        '',
+        '| Result | Test | Location | Time |',
+        '| --- | --- | --- | --- |',
+    ]
+    lines.extend(rows)
+    return '\n'.join(lines)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    print(render(sys.argv[1]))
